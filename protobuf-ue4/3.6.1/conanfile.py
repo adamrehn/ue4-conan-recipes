@@ -4,24 +4,28 @@ class ProtobufUe4Conan(ConanFile):
     name = "protobuf-ue4"
     version = "3.6.1"
     license = "BSD-3-Clause"
-    url = "https://github.com/adamrehn/ue4-conan/recipes/protobuf-ue4"
+    url = "https://github.com/adamrehn/ue4-conan-recipes/protobuf-ue4"
     description = "Protocol Buffers custom build for Unreal Engine 4"
     settings = "os", "compiler", "build_type", "arch"
     generators = "cmake"
     requires = (
-        "libcxx/ue4@adamrehn/generated",
-        "zlib/ue4@adamrehn/generated"
+        "libcxx/ue4@adamrehn/profile",
+        "ue4util/ue4@adamrehn/profile"
     )
+    
+    def requirements(self):
+        self.requires("zlib/ue4@adamrehn/{}".format(self.channel))
     
     def cmake_flags(self):
         
         # Generate the CMake flags to ensure the UE4-bundled version of zlib is used
+        from ue4util import Utility
         zlib = self.deps_cpp_info["zlib"]
         return [
             "-Dprotobuf_BUILD_TESTS=OFF",
             "-DBUILD_SHARED_LIBS=OFF",
-            "-DZLIB_INCLUDE_DIR=" + zlib.includedirs[0],
-            "-DZLIB_LIBRARY=" + zlib.libs[0]
+            "-DZLIB_INCLUDE_DIR=" + zlib.include_paths[0],
+            "-DZLIB_LIBRARY=" + Utility.resolve_file(zlib.lib_paths[0], zlib.libs[0])
         ]
     
     def source(self):

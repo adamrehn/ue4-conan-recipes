@@ -4,11 +4,11 @@ class CaresUe4Conan(ConanFile):
     name = "cares-ue4"
     version = "1.13.0"
     license = "MIT"
-    url = "https://github.com/adamrehn/ue4-conan/recipes/cares-ue4"
+    url = "https://github.com/adamrehn/ue4-conan-recipes/cares-ue4"
     description = "c-ares custom build for Unreal Engine 4"
     settings = "os", "compiler", "build_type", "arch"
     generators = "cmake"
-    requires = ("libcxx/ue4@adamrehn/generated")
+    requires = ("libcxx/ue4@adamrehn/profile")
     
     def cmake_flags(self):
         return [

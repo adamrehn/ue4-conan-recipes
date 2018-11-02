@@ -1,29 +1,30 @@
 from conans import ConanFile, CMake, tools
-from grpc_helper import Utility
 import json, os
 
 class GrpcUe4Conan(ConanFile):
     name = "grpc-ue4"
     version = "1.16.0"
     license = "Apache-2.0"
-    url = "https://github.com/adamrehn/ue4-conan/recipes/grpc-ue4"
+    url = "https://github.com/adamrehn/ue4-conan-recipes/grpc-ue4"
     description = "gRPC custom build for Unreal Engine 4"
     settings = "os", "compiler", "build_type", "arch"
     generators = "cmake"
-    exports = "*"
+    exports = "*.py"
     requires = (
-        "libcxx/ue4@adamrehn/generated",
-        "OpenSSL/ue4@adamrehn/generated",
-        "zlib/ue4@adamrehn/generated"
+        "libcxx/ue4@adamrehn/profile",
+        "ue4util/ue4@adamrehn/profile"
     )
     
     def requirements(self):
+        self.requires("OpenSSL/ue4@adamrehn/{}".format(self.channel))
+        self.requires("zlib/ue4@adamrehn/{}".format(self.channel))
         self.requires("cares-ue4/1.13.0@{}/{}".format(self.user, self.channel))
         self.requires("protobuf-ue4/3.6.1@{}/{}".format(self.user, self.channel))
     
     def cmake_flags(self):
         
         # Retrieve the absolute paths to libprotobuf, libprotoc, and protoc
+        from ue4util import Utility
         protobuf = self.deps_cpp_info["protobuf-ue4"]
         libprotobuf = Utility.resolve_file(protobuf.lib_paths[0], "protobuf")
         libprotoc = Utility.resolve_file(protobuf.lib_paths[0], "protoc")
@@ -41,14 +42,13 @@ class GrpcUe4Conan(ConanFile):
             "-DgRPC_ZLIB_PROVIDER=package",
             "-Dc-ares_DIR=" + os.path.join(cares.lib_paths[0], "cmake", "c-ares"),
             "-DOPENSSL_USE_STATIC_LIBS=ON",
-            "-D_OPENSSL_INCLUDEDIR=" + openssl.include_paths[0],
-            "-D_OPENSSL_LIBDIR=" + openssl.lib_paths[0],
+            "-DOPENSSL_ROOT_DIR=" + openssl.rootpath,
             "-DProtobuf_INCLUDE_DIR=" + protobuf.include_paths[0],
             "-DProtobuf_LIBRARY=" + libprotobuf,
             "-DProtobuf_PROTOC_LIBRARY=" + libprotoc,
             "-DProtobuf_PROTOC_EXECUTABLE=" + protoc,
             "-DZLIB_INCLUDE_DIR=" + zlib.include_paths[0],
-            "-DZLIB_LIBRARY=" + zlib.libs[0],
+            "-DZLIB_LIBRARY=" + Utility.resolve_file(zlib.lib_paths[0], zlib.libs[0]),
         ]
     
     def source(self):

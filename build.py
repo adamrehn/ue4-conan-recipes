@@ -55,6 +55,9 @@ class PackageBuilder(object):
 		self.channel = channel
 		self.profile = profile
 		self.dryRun = dryRun
+		
+		# Cache our list of available packages
+		self.availablePackages = self.listAvailablePackages()
 	
 	def execute(self, command):
 		'''
@@ -133,7 +136,8 @@ class PackageBuilder(object):
 		dependencies = list([
 			self.stripQualifiers(d)
 			for d in dependencies
-			if d.endswith('@{}/{}'.format(self.user, self.channel)) == True
+			if d.endswith('@{}/{}'.format(self.user, self.channel)) == True and
+			self.parsePackage(d)[0] in self.availablePackages
 		])
 		return dependencies
 	
@@ -235,7 +239,7 @@ builder = PackageBuilder(rootDir, args.user, channel, 'ue4', args.dry_run)
 packages = []
 for arg in args.package:
 	if arg.lower() == 'all':
-		packages.extend(list([builder.identifyNewestVersion(p) for p in builder.listAvailablePackages()]))
+		packages.extend(list([builder.identifyNewestVersion(p) for p in builder.availablePackages]))
 	elif '==' in arg:
 		packages.append(arg.replace('==', '/'))
 	else:

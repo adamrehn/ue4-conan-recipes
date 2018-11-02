@@ -1,26 +1,11 @@
 import glob, json, os, subprocess
+from ue4util import Utility
 
-class Utility:
-    '''
-    Provides utility functionality for the `ProtoBuilder` class
-    '''
-    
-    @staticmethod
-    def resolve_file(searchdir, name):
-        '''
-        Helper method to resolve the absolute path to a header/library/binary/etc.
-        '''
-        matches = glob.glob(os.path.join(searchdir, "*{}*".format(name)))
-        return matches[0] if len(matches) > 0 else None
-    
-    @staticmethod
-    def interleave(*args):
-        '''
-        Generator to interleave two lists
-        (Based on this example: <https://stackoverflow.com/a/50312321>)
-        '''
-        for vals in zip(*args):
-            yield from vals
+# Generator to interleave two lists
+# (Based on this example: <https://stackoverflow.com/a/50312321>)
+def _interleave(*args):
+    for vals in zip(*args):
+        yield from vals
 
 
 class ProtoCompiler():
@@ -53,6 +38,6 @@ class ProtoCompiler():
         '''
         Invokes the protobuf compiler to perform code generation for the specified .proto files
         '''
-        includes = list(Utility.interleave(["-I" for proto in protos], [os.path.dirname(proto) for proto in protos]))
+        includes = list(_interleave(["-I" for proto in protos], [os.path.dirname(proto) for proto in protos]))
         subprocess.call([self.protoc] + includes + ["--grpc_out=" + outdir, "--plugin=protoc-gen-grpc=" + self.plugin] + protos)
         subprocess.call([self.protoc] + includes + ["--cpp_out=" + outdir] + protos)
