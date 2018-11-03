@@ -36,6 +36,7 @@ class GrpcUe4Conan(ConanFile):
         zlib = self.deps_cpp_info["zlib"]
         return [
             "-DgRPC_BUILD_TESTS=OFF",
+            "-DgRPC_MSVC_STATIC_RUNTIME=OFF",
             "-DgRPC_CARES_PROVIDER=package",
             "-DgRPC_PROTOBUF_PROVIDER=package",
             "-DgRPC_SSL_PROVIDER=package",

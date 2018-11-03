@@ -22,8 +22,9 @@ class ProtobufUe4Conan(ConanFile):
         from ue4util import Utility
         zlib = self.deps_cpp_info["zlib"]
         return [
-            "-Dprotobuf_BUILD_TESTS=OFF",
             "-DBUILD_SHARED_LIBS=OFF",
+            "-Dprotobuf_BUILD_TESTS=OFF",
+            "-Dprotobuf_MSVC_STATIC_RUNTIME=OFF",
             "-DZLIB_INCLUDE_DIR=" + zlib.include_paths[0],
             "-DZLIB_LIBRARY=" + Utility.resolve_file(zlib.lib_paths[0], zlib.libs[0])
         ]
