@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import argparse, glob, importlib.util, inspect, ue4cli, subprocess, shutil, shlex, sys, tempfile
+import argparse, glob, importlib.util, inspect, json, os, ue4cli, subprocess, shutil, shlex, sys, tempfile
 from os.path import abspath, basename, dirname, exists, join
 from collections import deque
 from natsort import natsorted
@@ -14,6 +14,14 @@ class Utility(object):
 	'''
 	Provides utility functionality
 	'''
+	
+	@staticmethod
+	def readFile(filename):
+		"""
+		Reads data from a file
+		"""
+		with open(filename, 'rb') as f:
+			return f.read().decode('utf-8')
 	
 	@staticmethod
 	def listPackagesInDir(directory):
@@ -58,11 +66,12 @@ class PackageBuilder(object):
 	Provides functionality for building a set of Conan packages
 	'''
 	
-	def __init__(self, rootDir, user, channel, profile, dryRun):
+	def __init__(self, rootDir, user, channel, profile, rebuild, dryRun):
 		self.rootDir = rootDir
 		self.user = user
 		self.channel = channel
 		self.profile = profile
+		self.rebuild = rebuild
 		self.dryRun = dryRun
 		
 		# Cache our list of available packages
@@ -77,6 +86,12 @@ class PackageBuilder(object):
 			return True
 		else:
 			return subprocess.call(command) == 0
+	
+	def capture(self, command):
+		'''
+		Executes the supplied command and captures the output
+		'''
+		return subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	
 	def listAvailablePackages(self):
 		'''
@@ -173,6 +188,33 @@ class PackageBuilder(object):
 		
 		return graph
 	
+	def fullyQualifiedIdentifier(self, package):
+		'''
+		Generates the fully-qualified identifier for the specified package
+		'''
+		return '{}@{}/{}'.format(package, self.user, self.channel)
+	
+	def isPackageInCache(self, package):
+		'''
+		Determines if the specified package exists in the local Conan cache
+		'''
+		
+		# Create a temporary file path for the JSON output
+		jsonFile = tempfile.NamedTemporaryFile(delete=False)
+		jsonFile.close()
+		
+		# Attempt to perform the search and parse the JSON output
+		fullyQualified = self.fullyQualifiedIdentifier(package)
+		searchResult = self.capture(['conan', 'search', fullyQualified, '--json', jsonFile.name])
+		parsedJSON = json.loads(Utility.readFile(jsonFile.name))
+		os.unlink(jsonFile.name)
+		
+		# Determine if the package has at least one binary in the cache
+		try:
+			return len(parsedJSON['results'][0]['items'][0]['packages']) > 0
+		except Exception as e:
+			return False
+	
 	def buildPackage(self, package):
 		'''
 		Builds an individual package
@@ -185,7 +227,7 @@ class PackageBuilder(object):
 		'''
 		Uploads the specified package to the specified remote
 		'''
-		fullyQualified = '{}@{}/{}'.format(package, self.user, self.channel)
+		fullyQualified = self.fullyQualifiedIdentifier(package)
 		if self.execute(['conan', 'upload', fullyQualified, '--all', '--confirm', '-r', remote]) == False:
 			raise RuntimeError('failed to upload package "{}" to remote "{}"'.format(fullyQualified, remote))
 	
@@ -198,7 +240,13 @@ class PackageBuilder(object):
 		graph = self.buildDependencyGraph(packages)
 		
 		# Perform a topological sort to determine the build order
-		return list(nx.topological_sort(graph))
+		buildOrder = list(nx.topological_sort(graph))
+		
+		# Determine which packages need to be built
+		if self.rebuild == True:
+			return buildOrder
+		else:
+			return list([p for p in buildOrder if self.isPackageInCache(p) == False])
 	
 	def buildPackages(self, buildOrder):
 		'''
@@ -219,6 +267,7 @@ class PackageBuilder(object):
 
 # Our supported command-line arguments
 parser = argparse.ArgumentParser()
+parser.add_argument('--rebuild', action='store_true', help='Rebuild packages that already exist in the local Conan cache')
 parser.add_argument('--dry-run', action='store_true', help='Print Conan commands instead of running them')
 parser.add_argument('-s', '-source', action='append', dest='sources', metavar='DIR', help='Add the specified directory as an additional source of buildable package recipes')
 parser.add_argument('-user', default=DEFAULT_USER, help='Set the user for the built packages (default user is "{}")'.format(DEFAULT_USER))
@@ -250,7 +299,7 @@ with tempfile.TemporaryDirectory() as tempDir:
 			shutil.copytree(join(source, recipe), join(tempDir, recipe))
 	
 	# Create our package builder
-	builder = PackageBuilder(tempDir, args.user, channel, 'ue4', args.dry_run)
+	builder = PackageBuilder(tempDir, args.user, channel, 'ue4', args.rebuild, args.dry_run)
 	
 	# Process the specified list of packages, resolving versions as needed
 	packages = []
@@ -264,6 +313,11 @@ with tempfile.TemporaryDirectory() as tempDir:
 	
 	# Perform dependency resolution and compute the build order for the packages
 	buildOrder = builder.computeBuildOrder(packages)
+	
+	# Verify that we are building at least one package
+	if len(buildOrder) == 0:
+		print('No packages need to be built. Use the --rebuild flag to rebuild existing packages.')
+		sys.exit(0)
 	
 	# Report the computed build order to the user
 	uploadSuffix = ' and uploaded to the remote "{}"'.format(args.upload) if args.upload is not None else ''
