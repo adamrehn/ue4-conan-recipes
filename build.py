@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import argparse, glob, importlib.util, inspect, ue4cli, subprocess, shlex, sys
+import argparse, glob, importlib.util, inspect, ue4cli, subprocess, shutil, shlex, sys, tempfile
 from os.path import abspath, basename, dirname, exists, join
 from collections import deque
 from natsort import natsorted
@@ -14,6 +14,15 @@ class Utility(object):
 	'''
 	Provides utility functionality
 	'''
+	
+	@staticmethod
+	def listPackagesInDir(directory):
+		'''
+		Retrieves the list of available package recipes contained in a directory
+		'''
+		allPackages = glob.glob(join(directory, '*', '*', 'conanfile.py'))
+		uniqueNames = set([basename(dirname(dirname(p))) for p in allPackages])
+		return list(uniqueNames)
 	
 	@staticmethod
 	def baseNames(classType):
@@ -73,9 +82,7 @@ class PackageBuilder(object):
 		'''
 		Retrieves the list of available packages (just the names, not the versions)
 		'''
-		allPackages = glob.glob(join(self.rootDir, '*', '*', 'conanfile.py'))
-		uniqueNames = set([basename(dirname(dirname(p))) for p in allPackages])
-		return list(uniqueNames)
+		return Utility.listPackagesInDir(self.rootDir)
 	
 	def identifyNewestVersion(self, name):
 		'''
@@ -213,6 +220,7 @@ class PackageBuilder(object):
 # Our supported command-line arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--dry-run', action='store_true', help='Print Conan commands instead of running them')
+parser.add_argument('-s', '-source', action='append', dest='sources', metavar='DIR', help='Add the specified directory as an additional source of buildable package recipes')
 parser.add_argument('-user', default=DEFAULT_USER, help='Set the user for the built packages (default user is "{}")'.format(DEFAULT_USER))
 parser.add_argument('-upload', default=None, metavar='REMOTE', help='Upload the built packages to the specified Conan remote')
 parser.add_argument('package', nargs='+', help='Package(s) to build, in either NAME or NAME==VERSION format (specify "all" to build all available packages)')
@@ -232,31 +240,40 @@ rootDir = abspath(dirname(__file__))
 ue4 = ue4cli.UnrealManagerFactory.create()
 channel = ue4.getEngineVersion('short')
 
-# Create our package builder
-builder = PackageBuilder(rootDir, args.user, channel, 'ue4', args.dry_run)
-
-# Process the specified list of packages, resolving versions as needed
-packages = []
-for arg in args.package:
-	if arg.lower() == 'all':
-		packages.extend(list([builder.identifyNewestVersion(p) for p in builder.availablePackages]))
-	elif '==' in arg:
-		packages.append(arg.replace('==', '/'))
-	else:
-		packages.append(builder.identifyNewestVersion(arg))
-
-# Perform dependency resolution and compute the build order for the packages
-buildOrder = builder.computeBuildOrder(packages)
-
-# Report the computed build order to the user
-uploadSuffix = ' and uploaded to the remote "{}"'.format(args.upload) if args.upload is not None else ''
-print('\nThe following packages will be built{}:'.format(uploadSuffix))
-for package in buildOrder:
-	print('\t' + package)
-
-# Attempt to build the packages
-builder.buildPackages(buildOrder)
-
-# If a remote has been specified to upload the built packages to, attempt to do so
-if args.upload is not None:
-	builder.uploadPackages(buildOrder, args.upload)
+# Create an auto-deleting temporary directory to hold our aggregated recipe sources
+with tempfile.TemporaryDirectory() as tempDir:
+	
+	# Iterate over our source directories and copy our recipes to the temp directory
+	sources = [rootDir] + (args.sources if args.sources is not None else [])
+	for source in sources:
+		for recipe in Utility.listPackagesInDir(source):
+			shutil.copytree(join(source, recipe), join(tempDir, recipe))
+	
+	# Create our package builder
+	builder = PackageBuilder(tempDir, args.user, channel, 'ue4', args.dry_run)
+	
+	# Process the specified list of packages, resolving versions as needed
+	packages = []
+	for arg in args.package:
+		if arg.lower() == 'all':
+			packages.extend(list([builder.identifyNewestVersion(p) for p in builder.availablePackages]))
+		elif '==' in arg:
+			packages.append(arg.replace('==', '/'))
+		else:
+			packages.append(builder.identifyNewestVersion(arg))
+	
+	# Perform dependency resolution and compute the build order for the packages
+	buildOrder = builder.computeBuildOrder(packages)
+	
+	# Report the computed build order to the user
+	uploadSuffix = ' and uploaded to the remote "{}"'.format(args.upload) if args.upload is not None else ''
+	print('\nThe following packages will be built{}:'.format(uploadSuffix))
+	for package in buildOrder:
+		print('\t' + package)
+	
+	# Attempt to build the packages
+	builder.buildPackages(buildOrder)
+	
+	# If a remote has been specified to upload the built packages to, attempt to do so
+	if args.upload is not None:
+		builder.uploadPackages(buildOrder, args.upload)
