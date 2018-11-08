@@ -204,15 +204,19 @@ class PackageBuilder(object):
 		jsonFile.close()
 		
 		# Attempt to perform the search and parse the JSON output
-		fullyQualified = self.fullyQualifiedIdentifier(package)
-		searchResult = self.capture(['conan', 'search', fullyQualified, '--json', jsonFile.name])
-		parsedJSON = json.loads(Utility.readFile(jsonFile.name))
-		os.unlink(jsonFile.name)
+		try:
+			fullyQualified = self.fullyQualifiedIdentifier(package)
+			searchResult = self.capture(['conan', 'search', fullyQualified, '--json', jsonFile.name])
+			parsedJSON = json.loads(Utility.readFile(jsonFile.name))
+		except:
+			parsedJSON = {}
+		finally:
+			os.unlink(jsonFile.name)
 		
 		# Determine if the package has at least one binary in the cache
 		try:
 			return len(parsedJSON['results'][0]['items'][0]['packages']) > 0
-		except Exception as e:
+		except:
 			return False
 	
 	def buildPackage(self, package):
