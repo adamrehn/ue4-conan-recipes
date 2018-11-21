@@ -6,23 +6,22 @@ This repository contains Conan recipes for a variety of libraries to facilitate 
 To build the packages, you will need the following:
 
 - Unreal Engine 4.19.0 or newer
-- Python 3.5 or newer, along with the dependencies specified in `requirements.txt`
+- Python 3.5 or newer
 - [ue4cli](https://github.com/adamrehn/ue4cli) and [conan-ue4cli](https://github.com/adamrehn/conan-ue4cli)
 
-To install the Python dependencies and build all of the packages, run:
+To build all of the packages, run the following command from the root directory of this repository:
 
 ```
-pip3 install -r requirements.txt
-python3 build.py all
+ue4 conan build all
 ```
 
 Alternatively, you can specify a list of individual packages (with optional version numbers), like so:
 
 ```
-python3 build.py PACKAGE1 PACKAGE2==1.2.3 PACKAGE3
+ue4 conan build PACKAGE1 PACKAGE2==1.2.3 PACKAGE3
 ```
 
-See the output of `python3 build.py --help` for full usage details.
+See the output of `ue4 conan build --help` for full usage details.
 
 It is recommended that you build the packages from this repository inside the `ue4-full` Docker image from [ue4-docker](https://github.com/adamrehn/ue4-docker) and then upload the built packages to a Conan remote so that they can be pulled from there for further use.
 

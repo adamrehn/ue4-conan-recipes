@@ -1,3 +1,0 @@
-conan>=1.7.4
-natsort>=4.0.0
-networkx
