@@ -1,6 +1,6 @@
 from conans import ConanFile, CMake, tools
 
-class MediaIPCUu4Conan(ConanFile):
+class MediaIPCUe4Conan(ConanFile):
     name = "MediaIPC-ue4"
     version = "0.0.2"
     license = "MIT"
