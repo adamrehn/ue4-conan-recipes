@@ -1,5 +1,5 @@
 from conans import AutoToolsBuildEnvironment, ConanFile, tools
-import os
+import io, os
 
 class PythonUe4Conan(ConanFile):
     name = "python-ue4"
@@ -14,11 +14,19 @@ class PythonUe4Conan(ConanFile):
         self.requires("OpenSSL/ue4@adamrehn/{}".format(self.channel))
         self.requires("zlib/ue4@adamrehn/{}".format(self.channel))
     
+    def _capture(self, command):
+        output = io.StringIO()
+        self.run(command, output=output)
+        return output.getvalue().strip()
+    
     def source(self):
         if self.settings.os != "Windows":
             
             # Clone the CPython source code
             self.run("git clone --progress --depth=1 https://github.com/python/cpython.git -b v{}".format(self.version))
+            
+            # Disable the use of the getrandom() function, since this causes issues when statically linking under Linux
+            tools.replace_in_file("cpython/configure", "have_getrandom=yes", "have_getrandom=no")
             
             # Under Linux, the UE4-bundled version of zlib is typically named libz_fPIC.a, but CPython expects libz.a
             zlibName = self.deps_cpp_info["zlib"].libs[0]
@@ -61,9 +69,18 @@ class PythonUe4Conan(ConanFile):
             os.chdir("cpython")
             autotools = AutoToolsBuildEnvironment(self)
             LibCxx.fix_autotools(autotools)
-            autotools.configure()
+            autotools.configure(args=["--disable-shared"])
             autotools.make()
             autotools.install()
     
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
+        
+        if self.settings.os != "Windows":
+            
+            # Retrieve the list of required system libraries from the config script
+            os.chdir(os.path.join(self.package_folder, "bin"))
+            output = self._capture("./python3.6-config --libs")
+            libs = [lib.replace("-l", "") for lib in output.split(" ")]
+            libs = [lib for lib in libs if lib not in self.cpp_info.libs + self.deps_cpp_info.libs]
+            self.cpp_info.libs.extend(libs)
