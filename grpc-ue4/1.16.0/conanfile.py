@@ -81,7 +81,7 @@ class GrpcUe4Conan(ConanFile):
     
     def build(self):
         
-        # Under Linux, restore CC and CXX if the current Conan profile has overridden them
+        # Enable compiler interposition under Linux to enforce the correct flags for libc++
         from libcxx import LibCxx
         LibCxx.set_vars(self)
         
