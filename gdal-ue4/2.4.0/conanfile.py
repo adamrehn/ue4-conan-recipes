@@ -8,7 +8,10 @@ class GdalUe4Conan(ConanFile):
     description = "GDAL custom build for Unreal Engine 4"
     settings = "os", "compiler", "build_type", "arch"
     generators = "cmake"
-    requires = ("libcxx/ue4@adamrehn/profile")
+    requires = (
+        "libcxx/ue4@adamrehn/profile",
+        "ue4util/ue4@adamrehn/profile"
+    )
     
     def requirements(self):
         self.requires("geos-ue4/3.6.3@adamrehn/{}".format(self.channel))
@@ -17,6 +20,12 @@ class GdalUe4Conan(ConanFile):
         self.requires("zlib/ue4@adamrehn/{}".format(self.channel))
     
     def configure_flags(self):
+        
+        # Determine the absolute path to `geos-config`
+        from ue4util import Utility
+        geos = self.deps_cpp_info["geos-ue4"]
+        geosConfig = Utility.resolve_file(geos.bin_paths[0], "geos-config")
+        
         return [
             "--prefix=" + self.package_folder,
             "--enable-static",
@@ -97,7 +106,7 @@ class GdalUe4Conan(ConanFile):
             "--without-armadillo",
             "--without-cryptopp",
             "--with-proj=yes",
-            "--with-geos=yes"
+            "--with-geos={}".format(geosConfig)
         ]
     
     def source(self):
