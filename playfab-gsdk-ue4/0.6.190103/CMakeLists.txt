@@ -17,6 +17,7 @@ find_package(OpenSSL REQUIRED)
 add_definitions(-DGSDK_LINUX)
 include_directories(cppsdk)
 include_directories(cppsdk/include)
+include_directories(${CURL_INCLUDE_DIRS} SYSTEM)
 
 # Build the SDK
 add_library(GSDK_CPP_Linux
@@ -38,7 +39,7 @@ add_library(GSDK_CPP_Linux
 
 # Link against curl, OpenSSL and pthreads
 target_link_libraries(GSDK_CPP_Linux
-	CURL::libcurl
+	${CURL_LIBRARIES}
 	OpenSSL::SSL
 	OpenSSL::Crypto
 	pthread
