@@ -17,6 +17,8 @@ To build all of the packages, run the following command (either from the root di
 ue4 conan build all
 ```
 
+(Note that if you attempt to run the above command from the root directory of this repository using newer versions of conan-ue4cli you will get a [recipe conflict](https://github.com/adamrehn/ue4-conan-recipes/issues/2), since cloning this repository is no longer necessary unless you are contributing to the development of its recipes. Users should run the command from another directory as per the instructions above, whilst contributors should specify the `--no-cache` flag to ensure your modified recipes are used instead of the current upstream versions.)
+
 Alternatively, you can specify a list of individual packages (with optional version numbers), like so:
 
 ```
