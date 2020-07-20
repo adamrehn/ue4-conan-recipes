@@ -14,6 +14,11 @@ class GdalUe4Conan(ConanFile):
         "ue4util/ue4@adamrehn/profile"
     )
     
+    def _replace_multiple(self, filename, pairs):
+        for pair in pairs:
+            search, replace = pair
+            tools.replace_in_file(filename, search, replace)
+    
     def requirements(self):
         self.requires("geos-ue4/3.6.3@adamrehn/{}".format(self.channel))
         self.requires("proj-ue4/4.9.3@adamrehn/{}".format(self.channel))
@@ -132,9 +137,10 @@ class GdalUe4Conan(ConanFile):
         zlib = self.deps_cpp_info["zlib"]
         
         # Disable extraneous external dependencies and point GDAL to the include directories and library locations of our libraries
-        for pair in [
+        self._replace_multiple("nmake.opt", [
             
             # General
+            ["\nGDAL_HOME = \"C:\\warmerda\\bld\"", "\nGDAL_HOME = \"{}\"".format(self.package_folder)],
             ["\nPAM_SETTING=-DPAM_ENABLED", "\n#PAM_SETTING=-DPAM_ENABLED"],
             ["\nBSB_SUPPORTED = 1", "\n#BSB_SUPPORTED = 1"],
             ["\nODBC_SUPPORTED = 1", "\n#ODBC_SUPPORTED = 1"],
@@ -162,12 +168,18 @@ class GdalUe4Conan(ConanFile):
             ["\n#ZLIB_INC = -IC:\projects\zlib", "\nZLIB_INC = -I{}".format(zlib.include_paths[0])],
             ["\n#ZLIB_LIB = C:\projects\lib\Release\zlib.lib", "\nZLIB_LIB = {}".format(Utility.resolve_file(zlib.lib_paths[0], zlib.libs[0]))]
             
-        ]:
-            search, replace = pair
-            tools.replace_in_file("nmake.opt", search, replace)
+        ])
         
         # Prevent the GDAL command-line tools from being built, since they don't work nicely with a static build
-        tools.replace_in_file("makefile.vc", " apps_dir", " #apps_dir")
+        self._replace_multiple("makefile.vc", [
+            ["\n\tcd apps\r\n\t$(MAKE)", "\n\tcd apps\r\n\techo $(MAKE)"],
+            ["\n\tcd ..\\apps\r\n\t$(MAKE)", "\n\tcd ..\\apps\r\n\techo $(MAKE)"],
+            ["\r\nAPPS_OBJ = ", "\r\nAPPS_OBJ=\r\n#APPS_OBJ = "],
+            ["\n\t apps\gdaldem_lib.obj", "\n#\t apps\gdaldem_lib.obj"]
+        ])
+        
+        # Patch the Visual Studio project file generation script to call the installation target when building the project
+        tools.replace_in_file("generate_vcxproj.bat", "^</NMakeBuildCommandLine^>", " devinstall^</NMakeBuildCommandLine^>")
         
         # Generate the Visual Studio project file
         msvcVersion = int(str(self.settings.compiler.version))
@@ -176,7 +188,7 @@ class GdalUe4Conan(ConanFile):
             '64' if self.settings.arch == 'x86_64' else '32'
         ))
         
-        # Build the project
+        # Build the project and install the built files in our package folder
         msbuild = MSBuild(self)
         msbuild.build("gdal.vcxproj")
     
@@ -213,23 +225,6 @@ class GdalUe4Conan(ConanFile):
         autotools.configure(args=self.configure_flags())
         autotools.make(args=["-j1"])
         autotools.make(target="install")
-    
-    def package(self):
-        
-        # Copy the GDAL headers and library files to our package folder under Windows
-        if self.settings.os == "Windows":
-            
-            # Copy the GDAL static library
-            self.copy("gdal.lib", "lib", "gdal/gdal", keep_path=False)
-            
-            # Copy individual header files we are interested in
-            self.copy("gdal_utils.h", "include", "gdal/gdal/apps", keep_path=False)
-            self.copy("memdataset.h", "include", "gdal/gdal/frmts/mem", keep_path=False)
-            self.copy("rawdataset.h", "include", "gdal/gdal/frmts/raw", keep_path=False)
-            
-            # Copy all header files from the relevant subdirectories
-            for subdir in ["port", "gcore", "alg", "ogr", "gnm", "frmts/vrt"]:
-                self.copy("*.h", "include", "gdal/gdal/{}".format(subdir), keep_path=False)
     
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
