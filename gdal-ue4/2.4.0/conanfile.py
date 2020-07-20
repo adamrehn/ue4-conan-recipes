@@ -214,5 +214,22 @@ class GdalUe4Conan(ConanFile):
         autotools.make(args=["-j1"])
         autotools.make(target="install")
     
+    def package(self):
+        
+        # Copy the GDAL headers and library files to our package folder under Windows
+        if self.settings.os == "Windows":
+            
+            # Copy the GDAL static library
+            self.copy("gdal.lib", "lib", "gdal/gdal", keep_path=False)
+            
+            # Copy individual header files we are interested in
+            self.copy("gdal_utils.h", "include", "gdal/gdal/apps", keep_path=False)
+            self.copy("memdataset.h", "include", "gdal/gdal/frmts/mem", keep_path=False)
+            self.copy("rawdataset.h", "include", "gdal/gdal/frmts/raw", keep_path=False)
+            
+            # Copy all header files from the relevant subdirectories
+            for subdir in ["port", "gcore", "alg", "ogr", "gnm", "frmts/vrt"]:
+                self.copy("*.h", "include", "gdal/gdal/{}".format(subdir), keep_path=False)
+    
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
