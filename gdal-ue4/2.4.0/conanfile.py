@@ -1,4 +1,4 @@
-from conans import AutoToolsBuildEnvironment, ConanFile, tools
+from conans import AutoToolsBuildEnvironment, ConanFile, MSBuild, tools
 
 class GdalUe4Conan(ConanFile):
     name = "gdal-ue4"
@@ -8,6 +8,7 @@ class GdalUe4Conan(ConanFile):
     description = "GDAL custom build for Unreal Engine 4"
     settings = "os", "compiler", "build_type", "arch"
     generators = "cmake"
+    short_paths = True
     requires = (
         "libcxx/ue4@adamrehn/profile",
         "ue4util/ue4@adamrehn/profile"
@@ -123,8 +124,61 @@ class GdalUe4Conan(ConanFile):
     
     def build_windows(self):
         
-        # TODO
-        raise NotImplementedError
+        # Retrieve the path details for PROJ, GEOS, and libpng
+        from ue4util import Utility
+        geos = self.deps_cpp_info["geos-ue4"]
+        png = self.deps_cpp_info["UElibPNG"]
+        proj = self.deps_cpp_info["proj-ue4"]
+        zlib = self.deps_cpp_info["zlib"]
+        
+        # Disable extraneous external dependencies and point GDAL to the include directories and library locations of our libraries
+        for pair in [
+            
+            # General
+            ["\nPAM_SETTING=-DPAM_ENABLED", "\n#PAM_SETTING=-DPAM_ENABLED"],
+            ["\nBSB_SUPPORTED = 1", "\n#BSB_SUPPORTED = 1"],
+            ["\nODBC_SUPPORTED = 1", "\n#ODBC_SUPPORTED = 1"],
+            ["\nGRIB_SETTING=yes", "\n#GRIB_SETTING=yes"],
+            ["\nMRF_SETTING=yes", "\n#MRF_SETTING=yes"],
+            ["\nDLLBUILD=1", "\n#DLLBUILD=1"],
+            
+            # PROJ
+            ["\n#PROJ_FLAGS = -DPROJ_STATIC -DPROJ_VERSION=4", "\nPROJ_FLAGS = -DPROJ_STATIC -DPROJ_VERSION=4"],
+            ["\n#PROJ_INCLUDE = -Id:\projects\proj.4\src", "\nPROJ_INCLUDE=-I{}".format(proj.include_paths[0])],
+            ["\n#PROJ_LIBRARY = d:\projects\proj.4\src\proj_i.lib", "\nPROJ_LIBRARY={}".format(Utility.resolve_file(proj.lib_paths[0], proj.libs[0]))],
+            
+            # GEOS
+            ["\n#GEOS_DIR=C:/warmerda/geos", "\nGEOS_DIR={}".format(geos.rootpath)],
+            ["\n#GEOS_CFLAGS = -I$(GEOS_DIR)/capi -I$(GEOS_DIR)/source/headers -DHAVE_GEOS", "\nGEOS_CFLAGS=-I{} -DHAVE_GEOS".format(geos.include_paths[0])],
+            ["\n#GEOS_LIB     = $(GEOS_DIR)/source/geos_c_i.lib", "\nGEOS_LIB={}".format(" ".join([Utility.resolve_file(geos.lib_paths[0], lib) for lib in geos.libs]))],
+            
+            # libpng
+            ["\n#PNG_EXTERNAL_LIB = 1", "\nPNG_EXTERNAL_LIB = 1"],
+            ["\n#PNGDIR = c:/projects/libpng-1.0.8", "\nPNGDIR = {}".format(png.include_paths[0])],
+            ["\n#PNG_LIB = $(PNGDIR)/libpng.lib", "\nPNG_LIB = {}".format(Utility.resolve_file(png.lib_paths[0], png.libs[0]))],
+            
+            # zlib
+            ["\n#ZLIB_EXTERNAL_LIB = 1", "\nZLIB_EXTERNAL_LIB = 1"],
+            ["\n#ZLIB_INC = -IC:\projects\zlib", "\nZLIB_INC = -I{}".format(zlib.include_paths[0])],
+            ["\n#ZLIB_LIB = C:\projects\lib\Release\zlib.lib", "\nZLIB_LIB = {}".format(Utility.resolve_file(zlib.lib_paths[0], zlib.libs[0]))]
+            
+        ]:
+            search, replace = pair
+            tools.replace_in_file("nmake.opt", search, replace)
+        
+        # Prevent the GDAL command-line tools from being built, since they don't work nicely with a static build
+        tools.replace_in_file("makefile.vc", " apps_dir", " #apps_dir")
+        
+        # Generate the Visual Studio project file
+        msvcVersion = int(str(self.settings.compiler.version))
+        self.run("generate_vcxproj.bat {:.1f} {} gdal".format(
+            15 if msvcVersion > 15 else msvcVersion,
+            '64' if self.settings.arch == 'x86_64' else '32'
+        ))
+        
+        # Build the project
+        msbuild = MSBuild(self)
+        msbuild.build("gdal.vcxproj")
     
     def build_unix(self):
         
