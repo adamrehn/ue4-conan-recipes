@@ -189,7 +189,10 @@ class GdalUe4Conan(ConanFile):
             ["\n\tcd apps\r\n\t$(MAKE) /f makefile.vc\r\n", "\n\tcd apps\r\n\t$(MAKE) /f makefile.vc appslib\r\n"],
             
             # Comment out the call to build the install target in the apps subdirectory
-            ["\n\tcd ..\\apps\r\n\t$(MAKE) /f makefile.vc install", "\n\tcd ..\\apps\r\n\techo $(MAKE) /f makefile.vc install"]
+            ["\n\tcd ..\\apps\r\n\t$(MAKE) /f makefile.vc install", "\n\tcd ..\\apps\r\n\techo $(MAKE) /f makefile.vc install"],
+            
+            # Prevent our external dependencies from being bundled into the GDAL static library
+            ["lib /nologo /out:gdal.lib $(LIBOBJ) $(EXTERNAL_LIBS)", "lib /nologo /out:gdal.lib $(LIBOBJ)"]
             
         ])
         
