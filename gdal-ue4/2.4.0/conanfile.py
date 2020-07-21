@@ -22,6 +22,7 @@ class GdalUe4Conan(ConanFile):
     def requirements(self):
         self.requires("geos-ue4/3.6.3@adamrehn/{}".format(self.channel))
         self.requires("proj-ue4/4.9.3@adamrehn/{}".format(self.channel))
+        self.requires("libcurl/ue4@adamrehn/{}".format(self.channel))
         self.requires("UElibPNG/ue4@adamrehn/{}".format(self.channel))
         self.requires("zlib/ue4@adamrehn/{}".format(self.channel))
     
@@ -129,8 +130,9 @@ class GdalUe4Conan(ConanFile):
     
     def build_windows(self):
         
-        # Retrieve the path details for PROJ, GEOS, and libpng
+        # Retrieve the path details for PROJ, GEOS, curl, libpng and zlib
         from ue4util import Utility
+        curl = self.deps_cpp_info["libcurl"]
         geos = self.deps_cpp_info["geos-ue4"]
         png = self.deps_cpp_info["UElibPNG"]
         proj = self.deps_cpp_info["proj-ue4"]
@@ -157,6 +159,12 @@ class GdalUe4Conan(ConanFile):
             ["\n#GEOS_DIR=C:/warmerda/geos", "\nGEOS_DIR={}".format(geos.rootpath)],
             ["\n#GEOS_CFLAGS = -I$(GEOS_DIR)/capi -I$(GEOS_DIR)/source/headers -DHAVE_GEOS", "\nGEOS_CFLAGS=-I{} -DHAVE_GEOS".format(geos.include_paths[0])],
             ["\n#GEOS_LIB     = $(GEOS_DIR)/source/geos_c_i.lib", "\nGEOS_LIB={}".format(" ".join([Utility.resolve_file(geos.lib_paths[0], lib) for lib in geos.libs]))],
+            
+            # curl
+            ["\n#CURL_DIR=C:\curl-7.15.0", "\nCURL_DIR={}".format(curl.rootpath)],
+            ["\n#CURL_INC = -I$(CURL_DIR)/include", "\nCURL_INC = -I{}".format(curl.include_paths[0])],
+            ["\n#CURL_LIB = $(CURL_DIR)/libcurl.lib", "\nCURL_LIB = {}".format(Utility.resolve_file(curl.lib_paths[0], curl.libs[0]))],
+            ["\n#CURL_CFLAGS = -DCURL_STATICLIB", "\nCURL_CFLAGS = -DCURL_STATICLIB"],
             
             # libpng
             ["\n#PNG_EXTERNAL_LIB = 1", "\nPNG_EXTERNAL_LIB = 1"],
