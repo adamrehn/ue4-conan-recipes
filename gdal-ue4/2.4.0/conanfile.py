@@ -138,17 +138,21 @@ class GdalUe4Conan(ConanFile):
         proj = self.deps_cpp_info["proj-ue4"]
         zlib = self.deps_cpp_info["zlib"]
         
-        # Disable extraneous external dependencies and point GDAL to the include directories and library locations of our libraries
+        # Disable unsupported external dependencies and point GDAL to the include directories and library locations of our libraries
         self._replace_multiple("nmake.opt", [
             
-            # General
+            # Set the installation path to our package folder
             ["\nGDAL_HOME = \"C:\\warmerda\\bld\"", "\nGDAL_HOME = \"{}\"".format(self.package_folder)],
+            
+            # Disable building GDAL as a shared library
+            ["\nDLLBUILD=1", "\n#DLLBUILD=1"],
+            
+            # Disable formats for which we lack external dependencies
             ["\nPAM_SETTING=-DPAM_ENABLED", "\n#PAM_SETTING=-DPAM_ENABLED"],
             ["\nBSB_SUPPORTED = 1", "\n#BSB_SUPPORTED = 1"],
             ["\nODBC_SUPPORTED = 1", "\n#ODBC_SUPPORTED = 1"],
             ["\nGRIB_SETTING=yes", "\n#GRIB_SETTING=yes"],
             ["\nMRF_SETTING=yes", "\n#MRF_SETTING=yes"],
-            ["\nDLLBUILD=1", "\n#DLLBUILD=1"],
             
             # PROJ
             ["\n#PROJ_FLAGS = -DPROJ_STATIC -DPROJ_VERSION=4", "\nPROJ_FLAGS = -DPROJ_STATIC -DPROJ_VERSION=4"],
