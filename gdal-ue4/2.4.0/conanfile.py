@@ -170,12 +170,15 @@ class GdalUe4Conan(ConanFile):
             
         ])
         
-        # Prevent the GDAL command-line tools from being built, since they don't work nicely with a static build
+        # Prevent the GDAL command-line tools from being built (since they don't work nicely with a static build) but ensure their library functions are still built
         self._replace_multiple("makefile.vc", [
-            ["\n\tcd apps\r\n\t$(MAKE)", "\n\tcd apps\r\n\techo $(MAKE)"],
-            ["\n\tcd ..\\apps\r\n\t$(MAKE)", "\n\tcd ..\\apps\r\n\techo $(MAKE)"],
-            ["\r\nAPPS_OBJ = ", "\r\nAPPS_OBJ=\r\n#APPS_OBJ = "],
-            ["\n\t apps\gdaldem_lib.obj", "\n#\t apps\gdaldem_lib.obj"]
+            
+            # Change the call to build the default target in the apps subdirectory to build just the libraries without the associated executables
+            ["\n\tcd apps\r\n\t$(MAKE) /f makefile.vc\r\n", "\n\tcd apps\r\n\t$(MAKE) /f makefile.vc appslib\r\n"],
+            
+            # Comment out the call to build the install target in the apps subdirectory
+            ["\n\tcd ..\\apps\r\n\t$(MAKE) /f makefile.vc install", "\n\tcd ..\\apps\r\n\techo $(MAKE) /f makefile.vc install"]
+            
         ])
         
         # Patch the Visual Studio project file generation script to call the installation target when building the project
