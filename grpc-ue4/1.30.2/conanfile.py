@@ -3,7 +3,7 @@ import json, os
 
 class GrpcUe4Conan(ConanFile):
     name = "grpc-ue4"
-    version = "1.16.0"
+    version = "1.30.2"
     license = "Apache-2.0"
     url = "https://github.com/adamrehn/ue4-conan-recipes/grpc-ue4"
     description = "gRPC custom build for Unreal Engine 4"
@@ -19,8 +19,8 @@ class GrpcUe4Conan(ConanFile):
     def requirements(self):
         self.requires("OpenSSL/ue4@adamrehn/{}".format(self.channel))
         self.requires("zlib/ue4@adamrehn/{}".format(self.channel))
-        self.requires("cares-ue4/1.13.0@{}/{}".format(self.user, self.channel))
-        self.requires("protobuf-ue4/3.6.1@{}/{}".format(self.user, self.channel))
+        self.requires("cares-ue4/1.16.1@{}/{}".format(self.user, self.channel))
+        self.requires("protobuf-ue4/3.12.3@{}/{}".format(self.user, self.channel))
     
     def cmake_flags(self):
         
