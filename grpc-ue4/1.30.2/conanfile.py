@@ -45,6 +45,7 @@ class GrpcUe4Conan(ConanFile):
             "-DgRPC_SSL_PROVIDER=package",
             "-DgRPC_ZLIB_PROVIDER=package",
             "-Dc-ares_DIR=" + os.path.join(cares.lib_paths[0], "cmake", "c-ares"),
+            "-DOPENSSL_SYSTEM_LIBRARIES={}".format(";".join(openssl.system_libs)),
             "-DOPENSSL_USE_STATIC_LIBS=ON",
             "-DOPENSSL_ROOT_DIR=" + openssl.rootpath,
             "-DProtobuf_DIR=" + os.path.join(protobuf.rootpath, "cmake"),
@@ -77,6 +78,13 @@ class GrpcUe4Conan(ConanFile):
             "grpc/CMakeLists.txt",
             "include(cmake/benchmark.cmake)",
             "#include(cmake/benchmark.cmake)"
+        )
+        
+        # Some versions of OpenSSL require additional system libraries under Windows (i.e. crypt32.lib)
+        tools.replace_in_file(
+            "grpc/cmake/ssl.cmake",
+            "set(_gRPC_SSL_LIBRARIES OpenSSL::SSL OpenSSL::Crypto)",
+            "set(_gRPC_SSL_LIBRARIES OpenSSL::SSL OpenSSL::Crypto ${OPENSSL_SYSTEM_LIBRARIES})"
         )
     
     def build(self):
