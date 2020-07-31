@@ -35,6 +35,7 @@ class GdalUe4Conan(ConanFile):
         
         return [
             "--prefix=" + self.package_folder,
+            "--datarootdir={}/data".format(self.package_folder),
             "--enable-static",
             "--disable-shared",
             "--without-libtool",
