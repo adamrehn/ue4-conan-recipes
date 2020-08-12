@@ -19,7 +19,14 @@ class GeosUe4Conan(ConanFile):
         ]
     
     def source(self):
+        
+        # Clone the source code
         self.run("git clone --progress --depth=1 https://github.com/libgeos/geos -b {}".format(self.version))
+        
+        # Prevent CMake from creating .so files with version suffixes under Unix platforms
+        tools.replace_in_file("geos/src/CMakeLists.txt", "VERSION ${VERSION}", "")
+        tools.replace_in_file("geos/capi/CMakeLists.txt", "VERSION ${CAPI_VERSION}", "")
+        tools.replace_in_file("geos/capi/CMakeLists.txt", "SOVERSION ${CAPI_SOVERSION}", "")
     
     def build(self):
         
