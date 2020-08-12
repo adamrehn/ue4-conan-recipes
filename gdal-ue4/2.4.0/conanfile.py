@@ -229,20 +229,6 @@ class GdalUe4Conan(ConanFile):
         if zlibName != "z":
             tools.replace_in_file("./configure", "-lz", "-l{}".format(zlibName))
         
-        # Patch the check for GEOS so that it works nicely with a static GEOS library
-        tools.replace_in_file(
-            "./configure",
-            "GEOS_LIBS=\"`${GEOS_CONFIG} --ldflags` -lgeos_c\"",
-            "GEOS_LIBS=\"`${GEOS_CONFIG} --static-clibs` -lpthread\""
-        )
-        
-        # Patch all linker checks to use CXX instead of CC, since otherwise the check for -lgeos_c fails with undefined references to C++ standard library symbols
-        tools.replace_in_file(
-            "./configure",
-            "ac_link='$CC",
-            "ac_link='$CXX"
-        )
-        
         # Prepare the autotools build environment
         autotools = AutoToolsBuildEnvironment(self)
         LibCxx.fix_autotools(autotools)

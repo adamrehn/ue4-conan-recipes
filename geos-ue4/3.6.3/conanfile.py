@@ -13,22 +13,13 @@ class GeosUe4Conan(ConanFile):
     
     def cmake_flags(self):
         return [
-            "-DGEOS_BUILD_STATIC=ON",
-            "-DGEOS_BUILD_SHARED=OFF",
+            "-DGEOS_BUILD_STATIC=OFF",
+            "-DGEOS_BUILD_SHARED=ON",
             "-DGEOS_ENABLE_TESTS=OFF"
         ]
     
     def source(self):
-        
-        # Clone the source code
         self.run("git clone --progress --depth=1 https://github.com/libgeos/geos -b {}".format(self.version))
-        
-        # Force geos_c to be built as a static library
-        tools.replace_in_file(
-            "geos/capi/CMakeLists.txt",
-            "geos_c SHARED",
-            "geos_c STATIC"
-        )
     
     def build(self):
         
