@@ -1,4 +1,5 @@
 from conans import AutoToolsBuildEnvironment, ConanFile, MSBuild, tools
+import os
 
 class GdalUe4Conan(ConanFile):
     name = "gdal-ue4"
@@ -233,10 +234,15 @@ class GdalUe4Conan(ConanFile):
         autotools = AutoToolsBuildEnvironment(self)
         LibCxx.fix_autotools(autotools)
         
+        # Ensure the configure script can load the GEOS shared library when running tests
+        geosPaths = self.deps_cpp_info["geos-ue4"].lib_paths
+        ldPath = ":".join([os.environ.get("LD_LIBRARY_PATH", "")] + geosPaths)
+        
         # Build using autotools
-        autotools.configure(args=self.configure_flags())
-        autotools.make(args=["-j{}".format(tools.cpu_count())])
-        autotools.make(target="install")
+        with tools.environment_append({"LD_LIBRARY_PATH": ldPath}):
+            autotools.configure(args=self.configure_flags())
+            autotools.make(args=["-j{}".format(tools.cpu_count())])
+            autotools.make(target="install")
     
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
