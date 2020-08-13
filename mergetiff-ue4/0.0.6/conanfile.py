@@ -2,7 +2,7 @@ from conans import ConanFile, CMake, tools
 
 class MergetiffUe4Conan(ConanFile):
     name = "mergetiff-ue4"
-    version = "0.0.5"
+    version = "0.0.6"
     license = "MIT"
     url = "https://github.com/adamrehn/ue4-conan-recipes/mergetiff-ue4"
     description = "mergetiff header-only package for Unreal Engine 4"
