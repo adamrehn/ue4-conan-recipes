@@ -114,6 +114,7 @@ class GdalUe4Conan(ConanFile):
             "--without-rasdaman",
             "--without-armadillo",
             "--without-cryptopp",
+            "--with-zstd=no",
             "--with-proj={}".format(self.deps_cpp_info["proj-ue4"].rootpath),
             "--with-geos={}".format(geosConfig)
         ]
@@ -220,6 +221,11 @@ class GdalUe4Conan(ConanFile):
         
         # Run autogen.sh
         self.run("./autogen.sh")
+
+        # Patch out iconv support under Mac OS X and patch GDAL v2.4.0 for XCode 12.x
+        if self.settings.os == "Macos":
+            self.run("sed -i '' 's/-D_XOPEN_SOURCE=500 //g' ogr/ogrsf_frmts/geojson/libjson/GNUmakefile")
+            tools.replace_in_file("./configure", "iconv.h", "iconv_h")
         
         # Patch out iconv support under Linux, since the UE4 bundled toolchain doesn't include it
         if self.settings.os == "Linux":
