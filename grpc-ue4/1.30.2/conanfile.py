@@ -48,7 +48,7 @@ class GrpcUe4Conan(ConanFile):
             "-DOPENSSL_SYSTEM_LIBRARIES={}".format(";".join(openssl.system_libs)),
             "-DOPENSSL_USE_STATIC_LIBS=ON",
             "-DOPENSSL_ROOT_DIR=" + openssl.rootpath,
-            "-DProtobuf_DIR=" + os.path.join(protobuf.rootpath, "cmake"),
+            "-DProtobuf_DIR=" + os.path.join(protobuf.rootpath, "lib/cmake/protobuf"),
             "-DZLIB_INCLUDE_DIR=" + zlib.include_paths[0],
             "-DZLIB_LIBRARY=" + Utility.resolve_file(zlib.lib_paths[0], zlib.libs[0]),
         ]
