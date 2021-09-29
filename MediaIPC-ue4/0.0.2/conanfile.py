@@ -11,7 +11,7 @@ class MediaIPCUe4Conan(ConanFile):
     generators = "cmake",
     requires = (
         "libcxx/ue4@adamrehn/profile",
-        "boost/1.69.0@conan/stable"
+        "boost/1.69.0"
     )
     
     def source(self):
