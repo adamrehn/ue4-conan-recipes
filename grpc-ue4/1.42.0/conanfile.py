@@ -32,7 +32,7 @@ class GrpcUe4Conan(ConanFile):
         protoc = Utility.resolve_file(protobuf.bin_paths[0], "protoc")
         
         # The location of the CMake files for protobuf is different under Windows
-        protobufCmakeLocation = "cmake/protobuf" if self.settings.os == "Windows" else "lib/cmake/protobuf"
+        protobufCmakeLocation = "cmake" if self.settings.os == "Windows" else "lib/cmake/protobuf"
         
         # Generate the CMake flags to use our custom dependencies
         cares = self.deps_cpp_info["cares-ue4"]
