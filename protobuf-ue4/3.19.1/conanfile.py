@@ -41,11 +41,11 @@ class ProtobufUe4Conan(ConanFile):
         )
         
         # Ensure the MSVC static runtime libraries are never used
-        # (Without this, it seems to ignore our `-Dprotobuf_MSVC_STATIC_RUNTIME=OFF` flag)
+        # (Without this, the `-Dprotobuf_MSVC_STATIC_RUNTIME=OFF` flag is ignored under CMake 3.15 and newer)
         tools.replace_in_file(
             "protobuf/cmake/CMakeLists.txt",
-            "cmake_dependent_option(protobuf_MSVC_STATIC_RUNTIME \"Link static runtime libraries\" ON",
-            "cmake_dependent_option(protobuf_MSVC_STATIC_RUNTIME \"Link static runtime libraries\" OFF"
+            "set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreaded$<$<CONFIG:Debug>:Debug>)",
+            "set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreaded$<$<CONFIG:Debug>:Debug>DLL)"
         )
     
     def build(self):
