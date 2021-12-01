@@ -31,6 +31,9 @@ class GrpcUe4Conan(ConanFile):
         libprotoc = Utility.resolve_file(protobuf.lib_paths[0], "protoc")
         protoc = Utility.resolve_file(protobuf.bin_paths[0], "protoc")
         
+        # The location of the CMake files for protobuf is different under Windows
+        protobufCmakeLocation = "cmake/protobuf" if self.settings.os == "Windows" else "lib/cmake/protobuf"
+        
         # Generate the CMake flags to use our custom dependencies
         cares = self.deps_cpp_info["cares-ue4"]
         openssl = self.deps_cpp_info["OpenSSL"]
@@ -48,7 +51,7 @@ class GrpcUe4Conan(ConanFile):
             "-DOPENSSL_SYSTEM_LIBRARIES={}".format(";".join(openssl.system_libs)),
             "-DOPENSSL_USE_STATIC_LIBS=ON",
             "-DOPENSSL_ROOT_DIR=" + openssl.rootpath,
-            "-DProtobuf_DIR=" + os.path.join(protobuf.rootpath, "lib/cmake/protobuf"),
+            "-DProtobuf_DIR=" + os.path.join(protobuf.rootpath, protobufCmakeLocation),
             "-DZLIB_INCLUDE_DIR=" + zlib.include_paths[0],
             "-DZLIB_LIBRARY=" + Utility.resolve_file(zlib.lib_paths[0], zlib.libs[0]),
         ]
