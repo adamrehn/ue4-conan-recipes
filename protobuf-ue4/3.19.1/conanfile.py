@@ -47,6 +47,10 @@ class ProtobufUe4Conan(ConanFile):
             "set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreaded$<$<CONFIG:Debug>:Debug>)",
             "set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreaded$<$<CONFIG:Debug>:Debug>DLL)"
         )
+        
+        # Fix the unguarded use of `#if _MSC_VER` in two header files, which triggers compiler warnings on non-Windows platforms
+        tools.replace_in_file("protobuf/src/google/protobuf/port_def.inc", "#if _MSC_VER", "#ifdef _MSC_VER")
+        tools.replace_in_file("protobuf/src/google/protobuf/port_undef.inc", "#if _MSC_VER", "#ifdef _MSC_VER")
     
     def build(self):
         
