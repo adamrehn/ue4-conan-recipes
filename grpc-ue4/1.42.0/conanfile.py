@@ -112,6 +112,9 @@ class GrpcUe4Conan(ConanFile):
         self.cpp_info.libs = tools.collect_libs(self)
         self.cpp_info.libs = list([lib for lib in self.cpp_info.libs if "_ext" not in lib])
         
+        # Disable warnings about unreachable code when consuming the library or its generated code from the Unreal Engine
+        self.cpp_info.defines = ["GPR_FORBID_UNREACHABLE_CODE=0"]
+        
         # Ensure the gRPC C++ plugin is copied when precomputing dependency data with conan-ue4cli
         self.user_info.binaries = json.dumps(["grpc_cpp_plugin"])
         

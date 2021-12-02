@@ -63,5 +63,8 @@ class ProtobufUe4Conan(ConanFile):
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
         
+        # Disable RTTI when consuming the library or its generated code from the Unreal Engine
+        self.cpp_info.defines = ["GOOGLE_PROTOBUF_NO_RTTI=1"]
+        
         # Ensure the protobuf compiler is copied when precomputing dependency data with conan-ue4cli
         self.user_info.binaries = json.dumps(["protoc"])
