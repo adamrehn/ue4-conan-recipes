@@ -39,18 +39,6 @@ class ProtobufUe4Conan(ConanFile):
             "set(_protobuf_libraries libprotobuf-lite libprotobuf)",
             "set(_protobuf_libraries libprotobuf)"
         )
-        
-        # Ensure the MSVC static runtime libraries are never used
-        # (Without this, the `-Dprotobuf_MSVC_STATIC_RUNTIME=OFF` flag is ignored under CMake 3.15 and newer)
-        tools.replace_in_file(
-            "protobuf/cmake/CMakeLists.txt",
-            "set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreaded$<$<CONFIG:Debug>:Debug>)",
-            "set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreaded$<$<CONFIG:Debug>:Debug>DLL)"
-        )
-        
-        # Fix the unguarded use of `#if _MSC_VER` in two header files, which triggers compiler warnings on non-Windows platforms
-        tools.replace_in_file("protobuf/src/google/protobuf/port_def.inc", "#if _MSC_VER", "#ifdef _MSC_VER")
-        tools.replace_in_file("protobuf/src/google/protobuf/port_undef.inc", "#if _MSC_VER", "#ifdef _MSC_VER")
     
     def build(self):
         
